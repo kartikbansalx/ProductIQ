@@ -1,0 +1,503 @@
+PRODUCT ANALYZER
+AI-Powered Market Intelligence Platform
+100% Free-Tier Tech Stack
+PROJECT REQUIREMENTS DOCUMENT  v2.0
+
+Version 2.0  |  June 2026
+Prepared by: Kartik Bansal
+
+Field
+Details
+Project
+Product Analyzer — Market Intelligence Platform
+Version
+2.0 — Zero-Cost Stack Edition
+AI Engine
+Google Gemini 2.5 Flash (Free Tier — no credit card)
+Search Layer
+Serper.dev (2,500 free queries on signup)
+Backend
+Python FastAPI — deployed free on Render.com
+Frontend
+React 18 + Vite — deployed free on Vercel
+Database
+Supabase (free tier: 500 MB PostgreSQL)
+Target Users
+Indian importers, D2C sellers, e-commerce entrepreneurs
+
+1. Executive Summary
+Product Analyzer is an AI-powered web app that lets Indian entrepreneurs research any product market in under 3 minutes — completely free to build and run. A user types a product name and receives a full market intelligence report: pricing across Indian e-commerce platforms, demand trends, top competitors, import viability from China, and Indian legal/regulatory requirements.
+
+Version 2.0 of this PRD replaces all paid APIs with carefully selected free-tier services that together cost ₹0 to operate at prototype and early-user scale. The AI brain is Google Gemini 2.5 Flash (free, 250 requests/day), search data comes from Serper.dev (2,500 free queries on signup), trends from pytrends (Google Trends, completely free), and the app is hosted on Vercel + Render (both free). The entire stack can be set up in a weekend.
+
+2. The Zero-Cost Tech Stack
+Every service below has a genuinely usable free tier. No credit card is required for any of them at the prototype stage.
+
+Layer
+Service
+Free Limit
+What it does
+AI Engine
+Google Gemini 2.5 Flash
+250 req/day, no card
+Synthesizes all data into the report
+Web Search
+Serper.dev
+2,500 queries (one-time signup)
+Google Shopping + web results for pricing
+Trends
+pytrends (Google Trends)
+Unlimited (rate-limited)
+12-month demand trend data
+Scraping
+BeautifulSoup + requests
+Free & open source
+Scrape Amazon/Flipkart product listings
+Database
+Supabase
+500 MB, unlimited rows
+Store reports, user sessions, legal DB
+Frontend Host
+Vercel
+100 GB bandwidth/month
+React app hosting + CDN
+Backend Host
+Render.com
+750 hrs/month free
+FastAPI Python backend hosting
+Cache/Queue
+Upstash Redis
+10,000 commands/day
+Cache repeated searches, job queue
+Auth
+Supabase Auth
+50,000 MAU free
+User login, saved reports
+PDF Export
+jsPDF (browser-side)
+Free open source
+Download report as PDF (runs in browser)
+
+2.1 Why Gemini 2.5 Flash (not Gemini Pro)?
+Flash gives 250 free requests/day vs 100 for Pro — 2.5x more capacity
+Flash is fast enough for structured JSON report generation (our use case)
+1 million token context window — enough to pass all scraped data in one call
+No credit card required to get the API key from Google AI Studio
+Strategy: use Flash for all reports; reserve Pro API calls only for complex legal lookups
+
+2.2 Why Serper.dev for search?
+2,500 free queries on account signup — one-time, no expiry for testing
+Returns clean structured JSON: organic results, Google Shopping prices, knowledge graph
+10 results per query with titles, URLs, snippets, and price data from Shopping
+Simple POST request, no complex SDK — easy to integrate in a weekend
+When 2,500 runs out: Tavily API gives 1,000 free credits/month (recurring, no card)
+
+2.3 Daily Capacity on Free Tier
+Bottleneck
+Free Limit
+Reports possible per day
+Gemini 2.5 Flash
+250 req/day
+~83 reports (3 Gemini calls per report)
+Serper.dev search
+2,500 total signup credit
+~125 reports (20 searches per report)
+Upstash Redis
+10,000 cmd/day
+Effectively unlimited for caching
+Render backend
+750 hrs/month
+~25 hours/day continuous running
+Conclusion: At prototype scale (< 50 users/day), the free stack handles everything comfortably. Once you get traction, upgrade only Serper.dev first (~$50/month for 50K queries — cheapest paid tier).
+
+3. Problem Statement
+3.1 The Problem
+Manual product research across Amazon, Flipkart, Alibaba etc. takes 8–15 hours per product
+No free tool in India combines pricing + demand + competition + legal compliance in one place
+Indian importers make ₹2–10 lakh import decisions based on gut instinct, not data
+Legal requirements (BIS certification, FSSAI, customs duty, GST) are confusing and scattered across 5+ government portals
+First-time sellers lose money because they don't know the landed cost or required licenses upfront
+
+3.2 Target Users
+First-time importers evaluating whether to import a product from China
+Amazon/Flipkart/Meesho sellers looking for new product categories to add
+D2C founders researching white-label product opportunities
+Procurement agents and sourcing consultants
+Students and entrepreneurs validating business ideas before investing
+
+4. Feature Requirements
+4.1 Core Features — MVP (Build First)
+F1 — Product Search & Report Generation
+User enters product name in a search bar
+System runs parallel data collection (search + trends)
+Gemini 2.5 Flash synthesizes all data into a structured JSON report
+Report renders in < 90 seconds with live progress indicator
+Reports saved to Supabase for 30 days
+
+F2 — Price Intelligence
+Average, minimum, and maximum prices from Indian marketplaces
+Serper Google Shopping results for Amazon IN, Flipkart, Meesho
+Estimated import price from China (Gemini infers from market knowledge + Alibaba context)
+Basic Customs Duty + IGST estimate by product category
+Gross margin calculator (interactive slider in UI)
+
+F3 — Demand Analysis
+12-month Google Trends data via pytrends (completely free)
+Trend direction: Rising / Stable / Falling with percentage
+Seasonal demand insights (peak months, off-season)
+Total listing count as proxy for market size
+
+F4 — Competitive Landscape
+Top 5 brands/sellers in the category (sourced from search results)
+Market concentration: Fragmented / Moderate / Dominated
+Entry difficulty score: Low / Medium / High
+Avg review ratings and review volume
+
+F5 — Product Variants & Categories
+All sub-types, sizes, materials, colors available in Indian market
+Feature comparison of top variants
+White-label availability indication
+
+F6 — Indian Legal & Regulatory Requirements (Key Differentiator)
+BIS certification: required YES/NO, IS standard number
+FSSAI license: required for food, health, or nutraceutical products
+Legal Metrology: mandatory labelling requirements (MRP, net quantity, importer name, country of origin)
+HSN code for the product
+Basic Customs Duty % + IGST %
+DGFT import status: Freely importable / Licensed / Restricted / Prohibited
+E-waste / plastic EPR compliance if applicable
+Quality Control Order (QCO) status if applicable
+
+F7 — AI Verdict
+Market Opportunity Score: 0–100
+Recommendation: BUY / CAUTION / SKIP with reasoning
+SWOT analysis (4 quadrants)
+Suggested selling price range
+Suggested platforms (Amazon, Flipkart, Meesho, D2C, etc.)
+
+4.2 Phase 2 Features (After MVP)
+Saved report history (requires Supabase Auth login)
+PDF export (jsPDF, runs in browser — no server cost)
+Product comparison: compare 2 products side by side
+Price alert: notify when similar products drop in price
+Chrome Extension for on-page research on Amazon/Flipkart
+
+5. System Architecture (Zero-Cost)
+5.1 Data Flow
+User submits product name via React frontend
+Vercel Edge Function OR Render FastAPI receives request
+Check Upstash Redis cache — if same product searched in last 24h, return cached report
+If cache miss: run 3 parallel tasks —
+Task A: Serper.dev — 5 queries (Amazon IN prices, Flipkart prices, Google Shopping, market overview, top brands)
+Task B: pytrends — fetch 12-month Google Trends interest data for the product
+Task C: Supabase legal DB lookup — match product to BIS/HSN/GST/DGFT data
+All raw data bundled into one large prompt → sent to Gemini 2.5 Flash API
+Gemini returns structured JSON report (~800–1200 tokens)
+Report stored in Supabase; returned to frontend
+Frontend renders interactive report with charts, score rings, SWOT grid
+
+5.2 Architecture Diagram (Text Representation)
+Frontend (Vercel — Free)
+Backend (Render — Free)
+React 18 + Vite + TailwindCSS
+Python FastAPI
+Recharts for trend charts
+asyncio parallel data fetch
+jsPDF for browser-side PDF export
+google-generativeai SDK (Gemini)
+Supabase JS client for auth
+pytrends for Google Trends
+Axios for API calls
+requests + BS4 for scraping
+
+6. Step-by-Step Build Guide
+Step 1 — Set Up Free API Keys (Day 1, ~1 hour)
+Gemini API: Go to aistudio.google.com → Create API key → copy to .env as GEMINI_API_KEY
+Serper: Go to serper.dev → Sign up → Get API key (2,500 free queries credited instantly)
+Supabase: Go to supabase.com → New project → copy SUPABASE_URL and SUPABASE_ANON_KEY
+Upstash: Go to upstash.com → Create Redis DB → copy UPSTASH_URL and UPSTASH_TOKEN
+
+Step 2 — Backend Setup (Day 1–2)
+pip install fastapi uvicorn google-generativeai pytrends requests beautifulsoup4 upstash-redis supabase
+Create main.py with FastAPI app and /api/analyze POST endpoint
+Write parallel_fetch() using asyncio.gather() for Serper + pytrends + legal DB
+Write gemini_report() that takes raw data dict and returns structured JSON
+Add Redis caching: check cache before fetching, store result for 24 hours
+Deploy to Render: connect GitHub repo, set env vars, auto-deploy on push
+
+Step 3 — Gemini Prompt Engineering (Critical)
+Your Gemini prompt must be precise. Key rules for getting good structured output:
+Always tell Gemini: 'Respond ONLY with valid JSON, no markdown, no backticks'
+Pass all raw search data in the prompt — Gemini's 1M token context handles it easily
+Ask for specific JSON schema with exact field names — validate with Pydantic on the backend
+Use temperature=0.2 for consistent structured outputs (lower = more deterministic)
+Include Indian market context: 'This is for the Indian market. All prices in INR.'
+
+Step 4 — Legal Database Setup (Day 2–3)
+The legal data is a static lookup table — not scraped. Build it once, maintain quarterly.
+Create a Supabase table: product_legal with columns: category, keywords[], bis_required (bool), bis_standard, hsn_code, customs_duty_pct, gst_pct, fssai_required (bool), dgft_status, legal_metrology (bool), notes
+Populate 100 most common import categories manually (electronics, toys, apparel, cosmetics, food, appliances, sports goods, etc.)
+Sources: bis.gov.in mandatory product list + cbic.gov.in tariff schedule + dgft.gov.in trade policy
+On backend: use keyword matching to map user's product to nearest legal category
+Gemini does the final interpretation: 'Based on this legal data, what applies to THIS product?'
+
+Step 5 — Frontend Setup (Day 3–4)
+npm create vite@latest product-analyzer -- --template react
+npm install tailwindcss recharts axios supabase jspdf
+Build 6 tab components: Overview, Pricing, Demand, Competition, Legal, Verdict
+Add margin calculator with useState slider (no backend call needed)
+Render Recharts LineChart for pytrends data
+Add loading states with progress bar (fake steps every 10 seconds)
+Deploy to Vercel: vercel --prod (auto-detects Vite, deploys in 30 seconds)
+
+7. Free Data Collection Strategy
+7.1 Serper.dev — Primary Search Source
+Each product analysis triggers these 5 Serper queries (= 5 credits per report):
+Query 1: '[product] price site:amazon.in' — gets Amazon India pricing
+Query 2: '[product] price site:flipkart.com' — gets Flipkart pricing
+Query 3: '[product] buy India price' — Google Shopping results with multiple sellers
+Query 4: 'best [product] brands India review' — top brands and competition
+Query 5: '[product] import india market size 2024 2025' — market overview
+This uses 5 of your 2,500 free credits per report = 500 full reports before needing to upgrade.
+
+7.2 pytrends — Google Trends (Completely Free)
+Use the pytrends Python library. No API key required — it directly queries Google Trends.
+Fetch interest_over_time() for past 12 months for the product name
+Fetch related_queries() for discovering sub-variants and related search terms
+Add time.sleep(2) between calls to avoid rate limiting
+Cache results in Redis — Trends data is stable for 24 hours
+
+7.3 BeautifulSoup Scraping — Fallback
+When Serper credits run low, fall back to direct scraping for basic price data:
+Amazon India search page: extract product titles + prices from HTML
+Add random User-Agent headers and 2–5 second delays to avoid blocks
+This is a fallback only — Serper results are more reliable and structured
+Note: Flipkart is harder to scrape due to anti-bot measures — rely on Serper for Flipkart
+
+8. Indian Legal & Regulatory Framework
+8.1 Regulatory Bodies Covered
+BIS (Bureau of Indian Standards) — mandatory product certifications for electronics, toys, helmets, appliances, cables, switches, etc.
+FSSAI — for all food products, health supplements, packaged water, nutraceuticals
+Legal Metrology — mandatory for ALL packaged commodities sold in India: MRP, date, importer name, country of origin, net quantity
+CDSCO — medical devices and cosmetics
+DGFT — import licensing: freely importable vs. restricted vs. canalised
+CBIC — customs duty classification using HSN codes
+MoEFCC — e-waste EPR for electronics; plastic EPR for plastic-heavy products
+
+8.2 Common Import Products & Their Legal Status
+Product Category
+BIS Required
+Customs Duty
+GST
+Other
+Bluetooth Earbuds / Speakers
+YES (IS 616)
+20%
+18%
+E-waste EPR
+LED Lights / Fairy Lights
+YES (IS 10322)
+20%
+12%
+BEE star rating
+Stainless Steel Bottles
+NO (voluntary)
+15%
+12%
+Legal Metrology
+Toys (children <14 yrs)
+YES (IS 9873)
+60%
+12%
+Age labelling reqd
+Air Purifiers
+YES (IS 12062)
+20%
+18%
+BEE rating needed
+Bamboo Products
+NO
+25%
+12%
+Legal Metrology only
+Health Supplements
+NO (BIS)
+30%
+18%
+FSSAI license reqd
+Power Banks
+YES (IS 16444)
+20%
+18%
+E-waste EPR
+
+9. Monetization — Upgrade When Ready
+Start completely free. Add monetization only after 100+ daily active users.
+
+Plan
+Price
+Reports/Month
+Extra Features
+Free
+₹0
+5 reports
+Basic report only
+Starter
+₹299/month
+30 reports
+PDF export + save history
+Pro
+₹999/month
+150 reports
+Compare products + alerts
+Agency
+₹2,999/month
+Unlimited
+Team + API access + white-label
+Revenue from 100 Starter subscribers = ₹29,900/month — enough to upgrade to Serper paid plan (₹4,000/month) and still profit.
+
+10. Risks & Free-Tier Mitigations
+Risk
+Severity
+Free-Tier Mitigation
+Gemini 250/day limit hit
+HIGH
+Redis cache: same product searched twice = 1 Gemini call. Cache lasts 24 hrs. 250 calls = ~1,000 unique daily users (4:1 cache ratio)
+Serper 2,500 credits exhausted
+HIGH
+Fallback to Tavily (1,000 free/month recurring) + BS4 scraping for price-only queries. Serper credits last 500 reports.
+Render backend cold start (30s delay)
+MEDIUM
+Show engaging loading animation. Add /ping endpoint hit by cron job (cron-job.org, free) every 14 min to keep server warm.
+pytrends rate limiting
+MEDIUM
+Add time.sleep(2) between calls. Cache trend data in Redis for 24 hours. Use rotating search terms.
+Legal data becomes outdated
+MEDIUM
+Quarterly manual review of BIS updates. Show 'data updated: [date]' badge on every legal section. Gemini disclaimer auto-added.
+Amazon blocks scraper
+LOW (MVP)
+MVP uses Serper results, not direct scraping. Scraping is fallback only.
+
+11. Development Roadmap
+Phase 1 — MVP (Week 1–3, Solo)
+Day 1–2: API keys setup + FastAPI backend with Gemini + Serper
+Day 3–4: pytrends integration + Redis caching + legal DB in Supabase
+Day 5–7: React frontend — search bar, progress bar, 6-tab report UI
+Day 8–10: Charts (Recharts LineChart for trends, custom bar charts for competition)
+Day 11–14: Polish UI, add margin calculator, deploy Vercel + Render
+Week 3: Test with 10 real products, fix Gemini prompt quality, share with 5 beta users
+
+Phase 2 — Growth (Week 4–8)
+Supabase Auth — user accounts, saved reports, report history
+jsPDF export — browser-side PDF generation (no server load)
+Product comparison mode — compare 2 products in parallel
+Razorpay integration — ₹299 Starter plan payment
+Landing page with SEO — target 'product market research India' keywords
+
+Phase 3 — Scale (Month 3+)
+Chrome Extension — right-click on Amazon/Flipkart product → 'Analyze this product'
+Upgrade Serper to paid ($50/month) when crossing 500 daily users
+Add Alibaba/1688 direct pricing via their Open Platform API (free tier available)
+Regional demand analysis — metros vs Tier-2 vs Tier-3 cities
+
+12. Frontend Design Brief (For Google Stitch)
+Use this section as the input prompt for Google Stitch or any AI UI builder to generate the frontend.
+
+12.1 App Identity
+App name: ProductIQ
+Tagline: 'Research any product market in 3 minutes'
+Color palette: Deep forest green (#1A5C36) primary, light sage (#F0F9F4) backgrounds, white/near-white cards, amber (#D97706) for warnings, red (#DC2626) for alerts. Dark mode fully supported with auto-switching via prefers-color-scheme.
+Feel: Bloomberg terminal meets modern Indian fintech. Data-dense but breathable. Premium yet accessible to first-time importers.
+Fonts: Syne (display/headings, weights 700–800), Instrument Sans (body, weights 400–500), DM Mono (HSN codes, numbers, data labels)
+
+12.2 Page Structure
+Landing / Search Page — entry point
+Loading / Progress Page — report generation simulation
+Report Page — 6-tab report view
+History Page — saved past reports (post-login only, future scope)
+
+12.3 Search Page Layout
+Full-viewport centered flex layout with z-index layered above particle/sticker layer
+Logo mark: 48×48px rounded green gradient icon (🧠) + Syne wordmark — "Product" bold green, "IQ" muted weight
+Hero badge: Pulsing green dot + "Live market intelligence for Indian importers" pill
+Headline: 56px Syne 800, "Is this product worth importing from China?" with <span> accent in forest green
+Search bar: 580px wide, 56px tall, border-radius: 100px, 2px green border on focus with 0 0 0 4px glow ring; inline "Analyze →" button in solid green, Syne 700
+Powered by row: Grey badge pills — Google Gemini, Amazon IN, Flipkart, BIS India, Google Trends
+Trust strip: 4 checkmark items — Free forever, No signup, Indian legal data included, Updated daily
+Floating stickers: 6 emoji (📦 📈 🇮🇳 💡 ⚡ 🔍) at fixed positions, CSS float keyframe — drift + subtle rotation, opacity: 0.6, pointer-events: none
+
+12.4 Progress / Loading Screen
+Fixed full-screen overlay, sage background
+Centered card: 460px wide, white, border-radius: 20px, soft shadow
+Product name shown at top in Syne 700 18px
+Progress bar: 6px tall, border-radius: 100px, gradient fill (#1A5C36 → #4ade80), JS-animated 0→100%
+Percentage counter in DM Mono 12px below bar
+5-step list: each step transitions active (spinning border dot + bold text) → done (green ✓ icon + green text)
+Step durations: 600ms / 700ms / 800ms / 700ms / 900ms → total ~3.7s
+
+12.5 Report Page Layout
+Sticky top bar (60px): Back button + product name (Syne 700) + animated SVG score ring (44px) + BUY/CAUTION/SKIP pill badge. Backdrop blur + white background.
+Sticky tab bar (below top bar): 6 horizontal scrollable tabs, 2px bottom-border active indicator in forest green. top: 60px, z-index: 49.
+Content area: max-width: 1100px, centered, padding: 1.5rem
+Floating PDF button: Fixed bottom-right, green, pill-shaped, shadow 0 4px 20px rgba(26,92,54,0.4), hover lifts
+
+12.6 Tab 1: Overview
+Verdict banner: Dark green gradient card (#0D3D24 → #1A5C36), white text. Contains: animated SVG score ring (80px), product name in Syne 800, 2-line rationale, BUY/CAUTION/SKIP ghost badge
+8-card metrics grid (repeat(auto-fit, minmax(160px, 1fr))): Category, Market Size, Avg Selling Price, Import Price, Gross Margin, Demand Level, Entry Difficulty, BIS Required — colored badge pills for status fields
+2-column row: Key Variants (blue pill tags) + Top Features (green pill tags)
+
+12.7 Tab 2: Pricing
+8 metric cards row: Min/Max/Avg Price, Import Price, Customs Duty %, GST %, Landed Cost, Gross Margin
+HSN Code card: Dark green gradient background (#0D3D24 → #1A5C36), DM Mono 1.6rem green monospace code, one-click copy button with ✓ confirmation flash
+Platform bar chart: 4 horizontal bars (Amazon/Flipkart/Meesho/Snapdeal) — width proportional to avg price, color-stepped greens, barGrow CSS animation on entry, listing count right-aligned in DM Mono
+Margin Calculator: Range slider (₹400–₹5,000, step ₹50) → live calculation of Net Margin %, Profit/Unit, Break-even Quantity. Platform fees modeled at 18%.
+
+12.8 Tab 3: Demand
+4 metric cards: Demand Level (HIGH/MED/LOW badge), Total Listings, Avg Rating (⭐), Review Volume
+Google Trends line chart: Chart.js, 12 months X-axis, 0–100 Y-axis, filled area under curve in rgba(26,92,54,0.12), tension .4 smooth curve
+Seasonality card: Amber gradient background (#fef3c7 → #fde68a), bold peak month callout, strategic inventory timing advice
+
+12.9 Tab 4: Competition
+4 metric cards: Entry Difficulty, Market Structure, Avg Rating, Total Listings
+Top Brands bar chart: Horizontal bars for 5 brands — share % width, stepped green palette, avg price right-aligned
+Platform breakdown table: Fixed-layout table — Platform | Price Range | Avg Price | Listing Count. DM Mono for numeric columns.
+
+12.10 Tab 5: Legal & Compliance
+4 metric cards: BIS Required (red badge), Import Status (green badge), Customs Duty %, GST %
+Regulatory checklist: 7 items — each with colored icon circle (red ✕ = mandatory, amber ! = conditional, green ✓ = not required) + bold title + description text. Sage background per item.
+Color legend row: inline badges explaining red/amber/green meaning
+Disclaimer card: Muted bordered box, 12px text — "informational guidance only, not legal advice."
+
+12.11 Tab 6: AI Verdict
+Large verdict banner: Same dark green gradient, but centered layout. 100px score ring, Syne 800 1.8rem name, rationale text, large BUY badge
+SWOT grid: 2×2 colored cards — Strengths (green #dcfce7), Weaknesses (red #fee2e2), Opportunities (blue #dbeafe), Threats (amber #fef3c7). Each has emoji title + 3 arrow-prefixed bullet points.
+Strategy card: Price range in Syne green, platform tags (sage pills), recommended first step in left-bordered highlight box
+
+12.12 Animation System
+fadeDown / fadeUp — staggered entry animations on landing elements (0.1s delays)
+float — 6s ease-in-out infinite loop for sticker emojis with rotation
+pulse — 2s opacity pulse on live badge dot
+barGrow — CSS @keyframes width animation on all bar charts, staggered by 0.1s per bar
+spin-slow — active step dot rotates during loading
+Score rings animated via JS stroke-dashoffset transition on tab render
+
+12.13 Mobile Responsiveness
+Search bar: full width, chips wrap to 2 rows
+Tabs: horizontally scrollable, scrollbar-width: none
+Metrics grid: auto-fit minmax(160px, 1fr) — naturally collapses to 2 columns
+Charts: full width, 180px height
+SWOT grid: 2-column on desktop → 1-column on mobile (breakpoint 640px)
+Verdict banner: flex row → flex column on mobile
+
+13. Appendix — Free Service Links
+Gemini API Key: aistudio.google.com → Get API Key
+Serper.dev: serper.dev → Sign Up (2,500 free queries)
+Supabase: supabase.com → Start a new project
+Upstash Redis: upstash.com → Create database
+Vercel: vercel.com → Import GitHub repo → deploy
+Render: render.com → New Web Service → Python
+cron-job.org: cron-job.org → free cron job to ping Render (prevents cold start)
+Tavily (backup search): app.tavily.com → 1,000 free credits/month recurring
+
+Regulatory information is provided for reference only. Verify all legal and compliance requirements with a qualified customs broker or legal professional before making import decisions. This document is confidential.
