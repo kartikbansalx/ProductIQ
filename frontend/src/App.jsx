@@ -353,23 +353,26 @@ export default function App() {
             <span className="absolute text-[34px] animate-float opacity-50 left-[5%] top-[45%]" style={{ animationDelay: '2s' }}>🔍</span>
             <span className="absolute text-[30px] animate-float opacity-50 right-[12%] top-[65%]" style={{ animationDelay: '1.5s' }}>💡</span>
             <span className="absolute text-[28px] animate-float opacity-50 right-[26%] bottom-[10%]" style={{ animationDelay: '3s' }}>⚡</span>
-            <span className="absolute text-[32px] font-bold text-[#707971]/20 left-[15%] bottom-[22%] tracking-wider font-sans select-none">IN</span>
           </div>
 
           <div className="flex-1 flex flex-col items-center justify-center px-margin max-w-4xl mx-auto w-full relative z-20 pt-8 pb-8">
             
-            {/* Pulsing Live Badge */}
+            {/* AI-Powered Badge */}
             <div className="mb-8 flex items-center gap-2 px-5 py-1.5 rounded-full border border-[#D9E6E2] bg-white/70 backdrop-blur-md shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-[#1A5C36] animate-pulse"></span>
+              <span className="w-2 h-2 rounded-full bg-[#1A5C36]"></span>
               <span className="text-[11px] font-bold text-[#1A5C36] tracking-wider uppercase font-sans">
-                Live Market Intelligence for Indian Importers
+                AI-Powered Market Intelligence
               </span>
             </div>
 
             {/* Main Headline */}
-            <h2 className="text-center text-[40px] md:text-[54px] text-[#121c28] tracking-tight leading-[1.1] mb-8 max-w-[768px] font-extrabold font-headline-lg">
+            <h2 className="text-center text-[40px] md:text-[54px] text-[#121c28] tracking-tight leading-[1.1] mb-4 max-w-[768px] font-extrabold font-headline-lg">
               Is this product worth <span className="text-[#004322] italic font-serif font-extrabold">importing</span> <br className="hidden md:inline" /> from China?
             </h2>
+
+            <p className="text-center text-[16px] md:text-[18px] text-[#5c6561] mb-8 max-w-none leading-relaxed">
+              Get pricing, competition, demand & Indian legal requirements — powered by AI, free forever.
+            </p>
 
             {/* Error Message banner */}
             {error && (
@@ -446,7 +449,7 @@ export default function App() {
           <footer className="py-lg px-margin flex flex-col md:flex-row justify-between items-center gap-sm bg-surface-container-highest border-t border-outline-variant text-center w-full mt-auto">
             <div className="flex flex-col items-center md:items-start gap-1">
               <p className="text-caption font-caption text-on-surface-variant">© 2026 ProductIQ Market Intelligence. Built for Indian Entrepreneurs.</p>
-              <p className="text-caption font-caption text-on-surface-variant">Contact Developer: <a href="mailto:kartikb.work@gmail.com" className="hover:underline text-primary font-semibold">kartikb.work@gmail.com</a></p>
+              <p className="text-caption font-caption text-on-surface-variant">Contact Developer: <a href={`mailto:${'kartikb.work' + '@' + 'gmail.com'}`} className="hover:underline text-primary font-semibold">{'kartikb.work' + ' (at) ' + 'gmail.com'}</a></p>
             </div>
             <div className="flex gap-md">
               <a className="text-caption font-caption text-on-surface-variant hover:underline hover:text-primary transition-all" href="#">Terms of Service</a>
@@ -1314,7 +1317,7 @@ export default function App() {
           <footer className="w-full py-lg px-margin flex flex-col md:flex-row justify-between items-center gap-sm bg-surface-container-highest border-t border-outline-variant text-center max-w-7xl mx-auto left-0 right-0 mt-auto">
             <div className="flex flex-col items-center md:items-start gap-1">
               <p className="text-caption font-caption text-on-surface-variant">© 2026 ProductIQ Market Intelligence. All rights reserved.</p>
-              <p className="text-caption font-caption text-on-surface-variant">Contact Developer: <a href="mailto:kartikb.work@gmail.com" className="hover:underline text-primary font-semibold">kartikb.work@gmail.com</a></p>
+              <p className="text-caption font-caption text-on-surface-variant">Contact Developer: <a href={`mailto:${'kartikb.work' + '@' + 'gmail.com'}`} className="hover:underline text-primary font-semibold">{'kartikb.work' + ' (at) ' + 'gmail.com'}</a></p>
             </div>
             <div className="flex gap-md">
               <a className="text-caption font-caption text-on-surface-variant hover:underline hover:text-primary transition-all" href="#">Terms of Service</a>
