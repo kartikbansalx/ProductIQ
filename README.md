@@ -1,7 +1,4 @@
 <div align="center">
-
-<img src="./ProductIQ.png" alt="ProductIQ banner" width="100%" />
-
 <h1>📦 ProductIQ</h1>
 
 <h3>AI-powered market intelligence for Indian importers &amp; e-commerce sellers</h3>
