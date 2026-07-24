@@ -1,76 +1,117 @@
-# ProductIQ
+<div align="center">
 
-**AI-powered market intelligence for Indian importers and e-commerce sellers.**
+<img src="./ProductIQ.png" alt="ProductIQ banner" width="100%" />
 
-🔗 **Live app:** [product-iq-analyzer.vercel.app](https://product-iq-analyzer.vercel.app/)
+<h1>📦 ProductIQ</h1>
 
-ProductIQ takes a product name and returns a full market intelligence report — pricing and margin analysis, demand signals, legal/import compliance (BIS, HSN, GST, customs), competitor landscape, and a clear BUY / CAUTION / SKIP verdict — so sellers can decide what to import and sell before spending a rupee on stock.
+<h3>AI-powered market intelligence for Indian importers &amp; e-commerce sellers</h3>
+
+<p>
+Type a product name. Get pricing, margins, legal compliance, competitor data, demand trends,<br/>
+and a straight <b>BUY / CAUTION / SKIP</b> verdict — before you spend a rupee on stock.
+</p>
+
+<p>
+  <a href="https://product-iq-analyzer.vercel.app/"><img src="https://img.shields.io/badge/🚀_Live_Demo-visit_app-4ADE80?style=for-the-badge" alt="Live Demo"/></a>
+  <a href="#-getting-started"><img src="https://img.shields.io/badge/⚙️_Setup-get_started-1F2937?style=for-the-badge" alt="Getting Started"/></a>
+  <a href="./DEPLOYMENT.md"><img src="https://img.shields.io/badge/📦_Deploy-guide-1F2937?style=for-the-badge" alt="Deployment Guide"/></a>
+</p>
+
+<p>
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black&style=flat-square" alt="React 19"/>
+  <img src="https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white&style=flat-square" alt="Vite"/>
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-38BDF8?logo=tailwindcss&logoColor=white&style=flat-square" alt="Tailwind CSS 4"/>
+  <img src="https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi&logoColor=white&style=flat-square" alt="FastAPI"/>
+  <img src="https://img.shields.io/badge/Gemini-AI-8E75FF?logo=googlegemini&logoColor=white&style=flat-square" alt="Google Gemini"/>
+  <img src="https://img.shields.io/badge/Supabase-DB-3ECF8E?logo=supabase&logoColor=white&style=flat-square" alt="Supabase"/>
+  <img src="https://img.shields.io/badge/Upstash-Redis-00E9A3?logo=redis&logoColor=white&style=flat-square" alt="Upstash Redis"/>
+  <img src="https://img.shields.io/badge/License-Unlicensed-lightgrey?style=flat-square" alt="License"/>
+</p>
+
+</div>
 
 ---
 
-## What it does
+### 📑 Table of Contents
+
+<p>
+<a href="#-what-it-does">What it does</a> ·
+<a href="#-screenshots--demo">Screenshots</a> ·
+<a href="#%EF%B8%8F-tech-stack">Tech Stack</a> ·
+<a href="#-project-structure">Project Structure</a> ·
+<a href="#-api-endpoints">API</a> ·
+<a href="#-getting-started">Getting Started</a> ·
+<a href="#-deployment">Deployment</a> ·
+<a href="#-license">License</a>
+</p>
+
+---
+
+## 🧠 What it does
 
 Give it a product name, and ProductIQ returns a structured report containing:
 
-- **IQ Score & Verdict** — a BUY / CAUTION / SKIP call with a rationale
-- **Market Performance** — category, market size, average rating, review volume, demand level, entry difficulty
-- **Pricing & Margins** — min/max/avg price, import price estimate, customs duty, GST, shipping, clearance fees, landed cost, suggested MSRP, gross margin %, net profit estimate, ROI %, and breakeven units
-- **Legal & Compliance** — BIS certification status, HSN code, GST %, DGFT import status, and a checklist of mandatory/conditional/not-required items
-- **Competitive Landscape** — platform-wise listings (price range, avg price, estimated units listed), brand market share, and a list of top products with price/rating/reviews
-- **Product Variants & Features** — common variants and feature list for the product
-- **Demand Trends** — Google Trends interest-over-time data
-- **Seasonality** — a seasonality label plus advice
-- **SWOT Analysis** — strengths, weaknesses, opportunities, threats
-- **Strategy Advice** — a short text recommendation
+| | | |
+|---|---|---|
+| 🎯 **IQ Score & Verdict** | BUY / CAUTION / SKIP call with a rationale | 📊 **Market Performance** | category, market size, rating, review volume, demand level, entry difficulty |
+| 💰 **Pricing & Margins** | landed cost, GST, customs, MSRP, gross margin %, ROI %, breakeven units | ⚖️ **Legal & Compliance** | BIS certification, HSN code, GST %, DGFT status, mandatory/conditional checklist |
+| 🏆 **Competitive Landscape** | platform-wise listings, brand market share, top products by price/rating/reviews | 🧩 **Variants & Features** | common variants and feature list for the product |
+| 📈 **Demand Trends** | Google Trends interest-over-time data | 🍂 **Seasonality** | seasonality label + timing advice |
+| 🧭 **SWOT Analysis** | strengths, weaknesses, opportunities, threats | 💡 **Strategy Advice** | a short, actionable recommendation |
 
-Reports are cached in Redis and persisted to Supabase, so repeat lookups for the same product are fast, and a history of the last 20 analyzed products is available via the API.
+Reports are cached in **Redis** and persisted to **Supabase**, so repeat lookups for the same product are fast, and a history of the last 20 analyzed products is available via the API.
 
 ---
 
-## Screenshots & Demo
+## 🖼️ Screenshots & Demo
 
-<!--
-Add screenshots or a demo video/GIF here. For example:
+<p align="center">
+  <a href="https://drive.google.com/file/d/14r89F1socSBz19faL6eSfEb-6ckjQy5-/view?usp=sharing">
+    <img src="ProductIQ.png" alt="Watch the demo" width="85%"/>
+    <br/>
+    <img src="https://img.shields.io/badge/▶-Watch_the_full_demo-EF4444?style=for-the-badge" alt="Watch the demo"/>
+  </a>
+</p>
 
-![Search / Landing Page](./docs/screenshots/search-landing.png)
-![Market Report Overview](./docs/screenshots/market-report-overview.png)
-![Pricing & Margins](./docs/screenshots/pricing-margins.png)
-![Report Generation Progress](./docs/screenshots/report-generation.png)
+<details>
+<summary><b>📷 Click to expand the full UI walkthrough</b></summary>
+<br/>
 
-For a demo video, either embed a GIF directly:
-![Demo](./docs/demo.gif)
+**Search / Landing Page**
+<img src="./ProductIQ UI/search_landing_page/screen.png" width="100%"/>
 
-or link to a hosted video (YouTube, Loom, etc.):
-[![Watch the demo](./docs/screenshots/thumbnail.png)](https://your-video-link)
--->
-[![Watch the demo](ProductIQ.png)](https://drive.google.com/file/d/14r89F1socSBz19faL6eSfEb-6ckjQy5-/view?usp=sharing)
+**Report Generation Progress**
+<img src="./ProductIQ UI/report_generation_progress/screen.png" width="100%"/>
+
+**Market Report Overview**
+<img src="./ProductIQ UI/market_report_overview/screen.png" width="100%"/>
 
 
-
----
-
-## Tech Stack
-
-**Frontend**
-- React 19 + Vite
-- Tailwind CSS 4
-- Recharts (data visualization)
-- jsPDF (export reports as PDF)
-- Axios
-
-**Backend**
-- FastAPI (Python)
-- Google Gemini (`google-generativeai`) — structured report generation
-- Serper.dev — real-time search/market data
-- pytrends — Google Trends demand signals
-- Supabase — persistent report storage
-- Upstash Redis — response caching
-
-This is a deliberately zero/low-cost stack, built to run entirely on free tiers.
+</details>
 
 ---
 
-## Project Structure
+## ⚙️ Tech Stack
+
+<div align="center">
+
+| Layer | Stack |
+|---|---|
+| **Frontend** | React 19 · Vite 8 · Tailwind CSS 4 · Recharts · jsPDF · Axios |
+| **Backend** | FastAPI (Python) · Google Gemini (`google-generativeai`) · Serper.dev · pytrends |
+| **Data** | Supabase (persistence) · Upstash Redis (caching) |
+| **Hosting** | Vercel (frontend) · Render (backend, Docker or Python service) |
+
+</div>
+
+> Deliberately zero/low-cost — the entire stack runs comfortably on free tiers.
+
+---
+
+## 🗂️ Project Structure
+
+<details>
+<summary><b>Click to expand the directory tree</b></summary>
 
 ```
 ProductIQ/
@@ -90,40 +131,47 @@ ProductIQ/
 └── DEPLOYMENT.md          # Full deployment guide (Render + Vercel)
 ```
 
+</details>
+
 ---
 
-## API Endpoints
+## 🔌 API Endpoints
 
 | Method | Endpoint       | Description                                             |
 |--------|----------------|-----------------------------------------------------------|
-| GET    | `/api/ping`    | Health check                                               |
-| POST   | `/api/analyze` | Analyze a product and return a full `MarketReport`         |
-| GET    | `/api/history` | Fetch the last 20 previously analyzed products             |
+| `GET`    | `/api/ping`    | Health check                                               |
+| `POST`   | `/api/analyze` | Analyze a product and return a full `MarketReport`         |
+| `GET`    | `/api/history` | Fetch the last 20 previously analyzed products             |
 
 `/api/analyze` follows a cache-first strategy: **Redis → Supabase → fresh generation** (Serper + Trends + Gemini, run concurrently), falling back to a mock report generator if Gemini fails.
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 - Python 3.10+
 - Node.js 18+
 - API keys: Google Gemini, Serper.dev, Supabase, Upstash Redis
 
-### 1. Clone the repo
+<details open>
+<summary><b>1️⃣ Clone the repo</b></summary>
+
 ```bash
 git clone https://github.com/kartikbansalx/ProductIQ.git
 cd ProductIQ
 ```
+</details>
 
-### 2. Backend setup
+<details open>
+<summary><b>2️⃣ Backend setup</b></summary>
+
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-Create a `.env` file in the project root with:
+Create a `.env` file in the project root:
 ```env
 GEMINI_API_KEY=your_gemini_key
 SERPER_API_KEY=your_serper_key
@@ -137,8 +185,11 @@ Set up the database by running `schema.sql` in the Supabase SQL Editor, then sta
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
+</details>
 
-### 3. Frontend setup
+<details open>
+<summary><b>3️⃣ Frontend setup</b></summary>
+
 ```bash
 cd frontend
 npm install
@@ -153,19 +204,27 @@ Then run:
 ```bash
 npm run dev
 ```
+</details>
 
 ---
 
-## Deployment
+## ☁️ Deployment
 
-ProductIQ is designed to deploy for free, and is currently live at [product-iq-analyzer.vercel.app](https://product-iq-analyzer.vercel.app/):
+ProductIQ is designed to deploy for free, and is currently live at **[product-iq-analyzer.vercel.app](https://product-iq-analyzer.vercel.app/)**:
+
 - **Backend** → [Render](https://render.com) (Python web service or Docker)
 - **Frontend** → [Vercel](https://vercel.com) (Vite static build)
 
-Full step-by-step instructions, including environment variable setup and Supabase table creation, are in [`DEPLOYMENT.md`](./DEPLOYMENT.md).
+Full step-by-step instructions, including environment variable setup and Supabase table creation, are in **[`DEPLOYMENT.md`](./DEPLOYMENT.md)**.
 
 ---
 
-## License
+## 📄 License
 
 This project currently has no explicit license. Contact the repository owner before reuse or distribution.
+
+---
+
+<div align="center">
+<sub>Built by <a href="https://github.com/kartikbansalx">Kartik Bansal</a></sub>
+</div>
