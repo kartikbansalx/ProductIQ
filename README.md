@@ -43,7 +43,7 @@ For a demo video, either embed a GIF directly:
 or link to a hosted video (YouTube, Loom, etc.):
 [![Watch the demo](./docs/screenshots/thumbnail.png)](https://your-video-link)
 -->
-[![Watch the demo](Demo Video/Screenshot 2026-07-24 174202.png)](https://drive.google.com/file/d/14r89F1socSBz19faL6eSfEb-6ckjQy5-/view?usp=sharing)
+[![Watch the demo](ProductIQ.png)](https://drive.google.com/file/d/14r89F1socSBz19faL6eSfEb-6ckjQy5-/view?usp=sharing)
 
 
 
