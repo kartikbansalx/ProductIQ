@@ -15,6 +15,7 @@ Ensure these variables are configured on your hosting dashboards:
 * `SUPABASE_ANON_KEY`: Your Supabase anonymous API key.
 * `UPSTASH_URL`: Your Upstash Redis URL (caching).
 * `UPSTASH_TOKEN`: Your Upstash Redis access token (caching).
+* `REPORT_FRESHNESS_DAYS`: Optional report freshness window in days (defaults to `30`).
 
 ### Frontend Environment Variables
 * `VITE_BACKEND_URL`: The URL of your deployed backend service (e.g., `https://productiq-backend.onrender.com`).
@@ -23,16 +24,9 @@ Ensure these variables are configured on your hosting dashboards:
 
 ## 2. Supabase Database Table Configuration
 
-Execute the following SQL command in your Supabase SQL Editor to set up the report storage table:
+Run the complete [`schema.sql`](./schema.sql) in the Supabase SQL Editor. It creates or migrates `product_reports` with a normalized unique `product_key`, `generated_at`, `expires_at`, and `updated_at` fields. Existing records are backfilled with a 30-day expiry. The migration keeps the newest record if legacy product names differ only by case or whitespace.
 
-```sql
-CREATE TABLE IF NOT EXISTS product_reports (
-    id SERIAL PRIMARY KEY,
-    product_name TEXT UNIQUE NOT NULL,
-    report_json JSONB NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-```
+The backend reuses reports only while they are fresh. Redis entries have a 24-hour TTL; Supabase is the persistent store and the default freshness window is 30 days. Set `REPORT_FRESHNESS_DAYS` to change that window.
 
 ---
 
@@ -84,3 +78,24 @@ npm run build
 # 2. Start Vite production preview server
 npm run preview
 ```
+
+## 6. Backend tests and report-generation benchmark
+
+From the `backend` directory:
+
+```bash
+pip install -r requirements-dev.txt
+pytest -q
+```
+
+Start the backend, then measure end-to-end request latency and the backend's recorded original report-generation time:
+
+```bash
+python benchmark_report.py "wireless earbuds" --base-url http://127.0.0.1:8000 --runs 3
+```
+
+The API response includes `generation_time_ms` and `generation_stages_ms` (`data_collection`, `gemini_and_validation`, and `persistence_and_cache`). On a cache hit, the saved report retains the original generation duration; the benchmark separately reports current request latency. Google Trends provenance is exposed as `trends_source` (`google_trends` or `simulated`) and `trends_fetched_at`.
+
+### Pricing calculation notes
+
+The backend now recalculates customs amount, import GST amount, landed cost, net profit, gross margin, ROI, and units required to recover the assumed INR 500,000 target in Python. Customs/GST percentages are taken from the matched local legal reference record. Import cost, shipping, clearance, and suggested MSRP remain estimates/assumptions supplied by the AI and/or fallback logic; deterministic arithmetic does not make those input estimates verified market quotes. The INR 500,000 units metric is `ceil(500000 / positive net_profit_per_unit)` and should be described as units required to recover that target from per-unit contribution, not as a complete accounting break-even analysis with all fixed and variable costs.

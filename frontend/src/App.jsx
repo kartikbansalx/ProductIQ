@@ -185,6 +185,13 @@ export default function App() {
     doc.text(splitRationale, margin, y);
     y += (splitRationale.length * 5) + 12;
 
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(`Google Trends source: ${report.trends_source === 'google_trends' ? 'Actual Google Trends' : report.trends_source === 'simulated' ? 'Simulated fallback' : 'Unknown'}`, margin, y); y += 5;
+    if (report.generation_time_ms != null) {
+      doc.text(`Original report generation time: ${(report.generation_time_ms / 1000).toFixed(2)} seconds`, margin, y); y += 7;
+    }
+
     // Pricing & Landed Cost Breakdown
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
@@ -223,7 +230,7 @@ export default function App() {
     doc.text(`- Return on Investment (ROI): ${pricing.roi_pct || 0}%`, margin, y); y += 8;
     
     doc.setFont("helvetica", "bold");
-    doc.text(`- Consignment Break-even Target (on INR 5 Lakhs): ${(pricing.breakeven_units || 0).toLocaleString()} units`, margin, y); y += 6;
+    doc.text(`- Units to recover INR 5 lakh target (per-unit contribution): ${(pricing.breakeven_units || 0).toLocaleString()} units`, margin, y); y += 6;
 
     // PAGE 2: Regulations, SWOT, and Competitor Listings
     doc.addPage();
@@ -353,26 +360,23 @@ export default function App() {
             <span className="absolute text-[34px] animate-float opacity-50 left-[5%] top-[45%]" style={{ animationDelay: '2s' }}>🔍</span>
             <span className="absolute text-[30px] animate-float opacity-50 right-[12%] top-[65%]" style={{ animationDelay: '1.5s' }}>💡</span>
             <span className="absolute text-[28px] animate-float opacity-50 right-[26%] bottom-[10%]" style={{ animationDelay: '3s' }}>⚡</span>
+            <span className="absolute text-[32px] font-bold text-[#707971]/20 left-[15%] bottom-[22%] tracking-wider font-sans select-none">IN</span>
           </div>
 
           <div className="flex-1 flex flex-col items-center justify-center px-margin max-w-4xl mx-auto w-full relative z-20 pt-8 pb-8">
             
-            {/* AI-Powered Badge */}
+            {/* Pulsing Live Badge */}
             <div className="mb-8 flex items-center gap-2 px-5 py-1.5 rounded-full border border-[#D9E6E2] bg-white/70 backdrop-blur-md shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-[#1A5C36]"></span>
+              <span className="w-2 h-2 rounded-full bg-[#1A5C36] animate-pulse"></span>
               <span className="text-[11px] font-bold text-[#1A5C36] tracking-wider uppercase font-sans">
-                AI-Powered Market Intelligence
+                Live Market Intelligence for Indian Importers
               </span>
             </div>
 
             {/* Main Headline */}
-            <h2 className="text-center text-[40px] md:text-[54px] text-[#121c28] tracking-tight leading-[1.1] mb-4 max-w-[768px] font-extrabold font-headline-lg">
+            <h2 className="text-center text-[40px] md:text-[54px] text-[#121c28] tracking-tight leading-[1.1] mb-8 max-w-[768px] font-extrabold font-headline-lg">
               Is this product worth <span className="text-[#004322] italic font-serif font-extrabold">importing</span> <br className="hidden md:inline" /> from China?
             </h2>
-
-            <p className="text-center text-[16px] md:text-[18px] text-[#5c6561] mb-8 max-w-none leading-relaxed">
-              Get pricing, competition, demand & Indian legal requirements — powered by AI, free forever.
-            </p>
 
             {/* Error Message banner */}
             {error && (
@@ -449,7 +453,7 @@ export default function App() {
           <footer className="py-lg px-margin flex flex-col md:flex-row justify-between items-center gap-sm bg-surface-container-highest border-t border-outline-variant text-center w-full mt-auto">
             <div className="flex flex-col items-center md:items-start gap-1">
               <p className="text-caption font-caption text-on-surface-variant">© 2026 ProductIQ Market Intelligence. Built for Indian Entrepreneurs.</p>
-              <p className="text-caption font-caption text-on-surface-variant">Contact Developer: <a href={`mailto:${'kartikb.work' + '@' + 'gmail.com'}`} className="hover:underline text-primary font-semibold">{'kartikb.work' + ' (at) ' + 'gmail.com'}</a></p>
+              <p className="text-caption font-caption text-on-surface-variant">Contact Developer: <a href="mailto:kartikb.work@gmail.com" className="hover:underline text-primary font-semibold">kartikb.work@gmail.com</a></p>
             </div>
             <div className="flex gap-md">
               <a className="text-caption font-caption text-on-surface-variant hover:underline hover:text-primary transition-all" href="#">Terms of Service</a>
@@ -851,8 +855,8 @@ export default function App() {
                         <span className="text-on-surface-variant font-medium">Gross Profit Margin %</span>
                         <span className="font-semibold text-on-surface">{report.pricing.gross_margin_pct}%</span>
                       </div>
-                      <div className="flex justify-between py-xs pt-sm text-primary font-bold" title="Based on ₹5,00,000 standard container/consignment size">
-                        <span>Consignment Break-even Units</span>
+                      <div className="flex justify-between py-xs pt-sm text-primary font-bold" title="Units required for cumulative per-unit profit to recover the assumed ₹5,00,000 target">
+                        <span>Units to Recover ₹5L Target</span>
                         <span>{report.pricing.breakeven_units.toLocaleString()} units</span>
                       </div>
                     </div>
@@ -1032,7 +1036,13 @@ export default function App() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
                   {/* Google Trends Line Chart */}
                   <div className="lg:col-span-2 bg-white p-lg rounded-xl border border-outline-variant shadow-sm">
-                    <h3 className="text-headline-md font-headline-md text-on-surface mb-lg">Google Trends 12-Month Search Interest (India)</h3>
+                    <h3 className="text-headline-md font-headline-md text-on-surface mb-sm">Google Trends 12-Month Search Interest (India)</h3>
+                    <div className="flex flex-wrap items-center gap-2 mb-md text-caption">
+                      <span className={`px-2 py-1 rounded-full font-semibold ${report.trends_source === 'google_trends' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                        {report.trends_source === 'google_trends' ? 'Actual Google Trends data' : report.trends_source === 'simulated' ? 'Simulated fallback data' : 'Data source unavailable'}
+                      </span>
+                      {report.trends_fetched_at && <span className="text-on-surface-variant">Fetched: {new Date(report.trends_fetched_at).toLocaleString()}</span>}
+                    </div>
                     <div className="h-[260px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart
@@ -1065,6 +1075,9 @@ export default function App() {
                       <p className="text-body-md text-amber-950 leading-relaxed">
                         {report.seasonality_advice}
                       </p>
+                      {report.generation_time_ms != null && (
+                        <p className="text-caption text-amber-900 mt-md">Original report generation: {(report.generation_time_ms / 1000).toFixed(2)}s</p>
+                      )}
                     </div>
                     <span className="text-caption font-data-label text-amber-800 uppercase tracking-widest mt-lg block">Inventory Scheduling Guidance</span>
                   </div>
@@ -1317,7 +1330,7 @@ export default function App() {
           <footer className="w-full py-lg px-margin flex flex-col md:flex-row justify-between items-center gap-sm bg-surface-container-highest border-t border-outline-variant text-center max-w-7xl mx-auto left-0 right-0 mt-auto">
             <div className="flex flex-col items-center md:items-start gap-1">
               <p className="text-caption font-caption text-on-surface-variant">© 2026 ProductIQ Market Intelligence. All rights reserved.</p>
-              <p className="text-caption font-caption text-on-surface-variant">Contact Developer: <a href={`mailto:${'kartikb.work' + '@' + 'gmail.com'}`} className="hover:underline text-primary font-semibold">{'kartikb.work' + ' (at) ' + 'gmail.com'}</a></p>
+              <p className="text-caption font-caption text-on-surface-variant">Contact Developer: <a href="mailto:kartikb.work@gmail.com" className="hover:underline text-primary font-semibold">kartikb.work@gmail.com</a></p>
             </div>
             <div className="flex gap-md">
               <a className="text-caption font-caption text-on-surface-variant hover:underline hover:text-primary transition-all" href="#">Terms of Service</a>

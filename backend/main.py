@@ -3,9 +3,11 @@ import json
 import re
 import asyncio
 import random
-from datetime import datetime, timedelta
+import math
+import time
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional, Any
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import requests
@@ -14,6 +16,10 @@ import google.generativeai as genai
 from upstash_redis import Redis
 from supabase import create_client, Client
 from pytrends.request import TrendReq
+from report_utils import (
+    normalize_product_key, is_report_fresh, calculate_pricing_metrics,
+    attach_report_metadata,
+)
 
 # Load environment variables
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
@@ -159,6 +165,12 @@ class MarketReport(BaseModel):
     legal: LegalCompliance
     swot: SWOTAnalysis
     strategy_advice: str
+    trends_source: str = "unknown"  # google_trends | simulated
+    trends_fetched_at: Optional[str] = None
+    generated_at: Optional[str] = None
+    generation_time_ms: Optional[int] = None
+    generation_stages_ms: Dict[str, int] = Field(default_factory=dict)
+    report_source: str = "generated"  # generated | fallback
 
 # --- Helper Functions ---
 
@@ -243,45 +255,42 @@ async def fetch_serper_data_parallel(product_name: str) -> Dict[str, Any]:
 
     return serper_data
 
-def get_trends_data(product_name: str) -> Dict[str, int]:
-    """Fetches Google Trends interest for the last 12 months, falling back to realistic mock trends on failure."""
+def get_trends_data(product_name: str) -> Dict[str, Any]:
+    """Return trend values with explicit provenance; never disguise simulated data as real."""
+    fetched_at = datetime.now(timezone.utc).isoformat()
     try:
         pytrends = TrendReq(hl='en-US', tz=330, timeout=10)
-        # Fetch interest over time for India
         pytrends.build_payload([product_name], cat=0, timeframe='today 12-m', geo='IN')
         df = pytrends.interest_over_time()
-        
         if not df.empty and product_name in df.columns:
-            # Parse into a dictionary mapping Month abbreviation to interest score
             trends = {}
             for timestamp, row in df.iterrows():
-                month_str = timestamp.strftime("%b")
-                trends[month_str] = int(row[product_name])
-            return trends
+                trends[timestamp.strftime("%b")] = int(row[product_name])
+            if trends:
+                return {"values": trends, "source": "google_trends", "fetched_at": fetched_at}
     except Exception as e:
-        print(f"Google Trends query failed: {e}. Generating realistic fallback trends.")
-    
-    # Realistic Fallback Generator (Random walk with seasonality or growth profile)
+        print(f"Google Trends query failed: {e}. Using clearly-labelled simulated fallback.")
+
+    # Synthetic fallback is useful for keeping the demo functional, but is never labelled real.
     months = ["Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May"]
     trends = {}
     current_value = random.randint(45, 75)
     trend_type = random.choice(["growing", "stable", "seasonal"])
-    
-    for i, month in enumerate(months):
+    for month in months:
         if trend_type == "growing":
             current_value += random.randint(-5, 12)
-        elif trend_type == "seasonal" and month in ["Oct", "Nov", "Dec"]: # Festive season peak
+        elif trend_type == "seasonal" and month in ["Oct", "Nov", "Dec"]:
             current_value = random.randint(80, 98)
         else:
             current_value += random.randint(-8, 8)
-        
         current_value = max(10, min(100, current_value))
         trends[month] = current_value
-        
-    return trends
+    return {"values": trends, "source": "simulated", "fetched_at": fetched_at}
 
-async def get_trends_data_async(product_name: str) -> Dict[str, int]:
+async def get_trends_data_async(product_name: str) -> Dict[str, Any]:
     return await asyncio.to_thread(get_trends_data, product_name)
+
+
 
 # --- Endpoints ---
 
@@ -290,50 +299,57 @@ def ping():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
 @app.post("/api/analyze", response_model=MarketReport)
-async def analyze_product(query: ProductQuery, background_tasks: BackgroundTasks):
+async def analyze_product(query: ProductQuery):
+    request_started = time.perf_counter()
     product_name = query.product_name.strip()
     if not product_name:
         raise HTTPException(status_code=400, detail="Product name cannot be empty")
 
-    cache_key = f"productiq:report:{product_name.lower().replace(' ', '_')}"
+    product_key = normalize_product_key(product_name)
+    cache_key = f"productiq:report:{product_key.replace(' ', '_')}"
+    freshness_days = int(os.getenv("REPORT_FRESHNESS_DAYS", "30"))
 
-    # 1. Check Redis Cache
+    # 1. Redis: validate freshness even if a key has not naturally expired.
     if redis_client:
         try:
             cached_data = redis_client.get(cache_key)
             if cached_data:
-                print(f"Cache HIT for: {product_name}")
-                return json.loads(cached_data)
+                cached_report = json.loads(cached_data)
+                if is_report_fresh({"generated_at": cached_report.get("generated_at")}, freshness_days):
+                    print(f"Redis fresh cache HIT: {product_name}")
+                    return cached_report
+                redis_client.delete(cache_key)
         except Exception as e:
-            print(f"Redis get failed: {e}")
+            print(f"Redis get/freshness check failed: {e}")
 
-    # 2. Check Supabase DB
+    # 2. Supabase: only reuse a report inside the freshness window.
     if supabase_client:
         try:
-            db_res = supabase_client.table("product_reports").select("report_json").eq("product_name", product_name).execute()
+            db_res = (supabase_client.table("product_reports")
+                      .select("report_json, generated_at, expires_at, created_at")
+                      .eq("product_key", product_key).limit(1).execute())
             if db_res.data:
-                print(f"Database HIT for: {product_name}")
-                report_data = db_res.data[0]["report_json"]
-                # Save back to Redis cache if connection is active
-                if redis_client:
-                    background_tasks.add_task(redis_client.set, cache_key, json.dumps(report_data), ex=86400)
-                return report_data
+                record = db_res.data[0]
+                if is_report_fresh(record, freshness_days):
+                    report_data = record["report_json"]
+                    if redis_client:
+                        redis_client.set(cache_key, json.dumps(report_data), ex=86400)
+                    print(f"Fresh Supabase report HIT: {product_name}")
+                    return report_data
+                print(f"Stored report expired; regenerating: {product_name}")
         except Exception as e:
-            print(f"Supabase select failed: {e}")
+            # A missing migration/column should not stop report generation; deployment SQL is documented.
+            print(f"Supabase read/freshness check failed: {e}")
 
-    # 3. Parallel Data Collection (Cache Miss)
-    print(f"Cache MISS. Fetching fresh data for: {product_name}")
-    
-    # Run Serper data collection, Google Trends and legal database lookup concurrently
+    # 3. Collect fresh data in parallel and record stage timings.
+    stage_timings: Dict[str, int] = {}
+    stage_started = time.perf_counter()
     serper_task = fetch_serper_data_parallel(product_name)
     trends_task = get_trends_data_async(product_name)
-    
-    # Run the matched legal lookup synchronously (local dictionary is instant)
     legal_info = match_legal_category(product_name)
-    
-    serper_results, trends_results = await asyncio.gather(serper_task, trends_task)
+    serper_results, trends_meta = await asyncio.gather(serper_task, trends_task)
+    stage_timings["data_collection"] = int((time.perf_counter() - stage_started) * 1000)
 
-    # 4. Generate structured report using Gemini
     system_prompt = f"""
     You are ProductIQ, an expert market intelligence AI specializing in Indian import operations, e-commerce pricing analysis, and regulatory compliance.
     
@@ -351,7 +367,7 @@ async def analyze_product(query: ProductQuery, background_tasks: BackgroundTasks
     {json.dumps(serper_results)}
     
     Raw Google Trends History:
-    {json.dumps(trends_results)}
+    {json.dumps(trends_meta["values"])}
     
     Preset Category Regulatory Guidelines:
     {json.dumps(legal_info)}
@@ -388,14 +404,14 @@ async def analyze_product(query: ProductQuery, background_tasks: BackgroundTasks
         "gst_pct": <GST rate, e.g. 18.0>,
         "shipping_cost_est": <Estimated shipping cost per unit in INR based on typical package size>,
         "clearance_fees_est": <Estimated custom agent clearance and port handling fees per unit in INR>,
-        "customs_amount": <Calculated customs duty amount: (import_price_est * customs_duty_pct / 100)>,
-        "gst_amount": <Calculated GST amount paid on import: (import_price_est + customs_amount) * gst_pct / 100>,
-        "landed_cost_est": <Calculated landed cost in INR: import_price_est + customs_amount + gst_amount + shipping_cost_est + clearance_fees_est>,
+        "customs_amount": 0,
+        "gst_amount": 0,
+        "landed_cost_est": 0,
         "suggested_msrp": <Suggested retail price based on market, e.g. 1399>,
-        "gross_margin_pct": <Percentage: ((suggested_msrp - landed_cost_est) / suggested_msrp) * 100>,
-        "net_profit_est": <Calculated net profit: suggested_msrp - landed_cost_est>,
-        "roi_pct": <Calculated ROI percentage: (net_profit_est / landed_cost_est) * 100>,
-        "breakeven_units": <Number of units to sell to break even on a standard initial container/consignment of 500000 INR (500000 / landed_cost_est)>
+        "gross_margin_pct": 0,
+        "net_profit_est": 0,
+        "roi_pct": 0,
+        "breakeven_units": 0
       }},
       "platforms": [
         {{
@@ -434,7 +450,7 @@ async def analyze_product(query: ProductQuery, background_tasks: BackgroundTasks
       ],
       "variants": ["<Variant 1>", "<Variant 2>", "<Variant 3>"],
       "features": ["<Feature 1>", "<Feature 2>", "<Feature 3>"],
-      "demand_trends": {json.dumps({k: v for k, v in list(trends_results.items())})},
+      "demand_trends": {json.dumps(trends_meta["values"])},
       "seasonality": "<e.g. High / Moderate / None>",
       "seasonality_advice": "<Strategic inventory stocking window details, e.g. Stock up by August for Diwali festive spike>",
       "legal": {{
@@ -462,14 +478,14 @@ async def analyze_product(query: ProductQuery, background_tasks: BackgroundTasks
     }}
     """
 
+    stage_started = time.perf_counter()
+    report_source = "generated"
     try:
         model = genai.GenerativeModel('gemini-2.5-flash')
     except Exception:
-        # Fallback to gemini-1.5-flash if 2.5-flash model name fails
         model = genai.GenerativeModel('gemini-1.5-flash')
 
     try:
-        # Request JSON mode or lower temperature to guarantee structure
         response = model.generate_content(
             system_prompt,
             generation_config=genai.types.GenerationConfig(
@@ -477,36 +493,75 @@ async def analyze_product(query: ProductQuery, background_tasks: BackgroundTasks
                 response_mime_type="application/json"
             )
         )
-        
-        # Clean response text if there are any trailing wrappers
         clean_json_str = response.text.strip()
         if clean_json_str.startswith("```json"):
             clean_json_str = clean_json_str[7:]
         if clean_json_str.endswith("```"):
             clean_json_str = clean_json_str[:-3]
-        clean_json_str = clean_json_str.strip()
-        
-        report_data = json.loads(clean_json_str)
-        
-        # Pydantic validates it complies with response model
+        report_data = json.loads(clean_json_str.strip())
+        # Replace all AI-provided arithmetic outputs with Python calculations.
+        report_data["pricing"] = calculate_pricing_metrics(report_data.get("pricing", {}))
         MarketReport.model_validate(report_data)
-
     except Exception as e:
-        print(f"Gemini API or JSON parse failed: {e}")
-        # Build a structured fallback report if Gemini fails completely so the user gets a working app
-        print("Using fallback report data")
-        report_data = generate_fallback_report(product_name, trends_results, legal_info)
+        print(f"Gemini API/JSON validation failed: {e}; using demo fallback report")
+        report_data = generate_fallback_report(product_name, trends_meta["values"], legal_info)
+        report_source = "fallback"
 
-    # 5. Save/Cache report asynchronously
-    if redis_client:
-        background_tasks.add_task(redis_client.set, cache_key, json.dumps(report_data), ex=86400)
-    
+    # Tax-rate assumptions come from the matched local legal reference data, not Gemini.
+    # Import price, freight, clearance and MSRP remain estimates; Python owns the arithmetic.
+    report_data.setdefault("pricing", {})["customs_duty_pct"] = float(legal_info.get("customs_duty_pct", 0) or 0)
+    report_data["pricing"]["gst_pct"] = float(legal_info.get("gst_pct", 18) or 0)
+    if report_data.get("legal") is not None:
+        report_data["legal"]["customs_duty_pct"] = report_data["pricing"]["customs_duty_pct"]
+        report_data["legal"]["gst_pct"] = report_data["pricing"]["gst_pct"]
+    report_data["pricing"] = calculate_pricing_metrics(report_data["pricing"])
+
+    stage_timings["gemini_and_validation"] = int((time.perf_counter() - stage_started) * 1000)
+    generated_at_dt = datetime.now(timezone.utc)
+    generated_at = generated_at_dt.isoformat()
+    expires_at = (generated_at_dt + timedelta(days=freshness_days)).isoformat()
+    total_ms = int((time.perf_counter() - request_started) * 1000)
+    report_data = attach_report_metadata(
+        report_data, trends_meta, generated_at, total_ms, stage_timings, report_source
+    )
+    MarketReport.model_validate(report_data)
+
+    # 4. Persist before responding, so a successful response is not lost if the process exits.
+    stage_started = time.perf_counter()
     if supabase_client:
         try:
-            background_tasks.add_task(save_to_supabase, product_name, report_data)
+            supabase_client.table("product_reports").upsert({
+                "product_key": product_key,
+                "product_name": product_name,
+                "report_json": report_data,
+                "generated_at": generated_at,
+                "expires_at": expires_at,
+                "updated_at": generated_at,
+            }, on_conflict="product_key").execute()
         except Exception as e:
-            print(f"Failed to queue Supabase save: {e}")
-
+            print(f"Supabase upsert failed: {e}")
+    if redis_client:
+        try:
+            redis_client.set(cache_key, json.dumps(report_data), ex=86400)
+        except Exception as e:
+            print(f"Redis set failed: {e}")
+    stage_timings["persistence_and_cache"] = int((time.perf_counter() - stage_started) * 1000)
+    # Include persistence stage in the end-to-end timing returned to the client.
+    report_data["generation_stages_ms"] = stage_timings
+    report_data["generation_time_ms"] = int((time.perf_counter() - request_started) * 1000)
+    # Update the stored payload with final timing values when persistence is available.
+    if supabase_client:
+        try:
+            supabase_client.table("product_reports").update({
+                "report_json": report_data
+            }).eq("product_key", product_key).execute()
+        except Exception as e:
+            print(f"Supabase timing metadata update failed: {e}")
+    if redis_client:
+        try:
+            redis_client.set(cache_key, json.dumps(report_data), ex=86400)
+        except Exception as e:
+            print(f"Redis final timing cache update failed: {e}")
     return report_data
 
 @app.get("/api/history")
@@ -514,7 +569,7 @@ def get_history():
     if not supabase_client:
         return []
     try:
-        res = supabase_client.table("product_reports").select("product_name, created_at").order("created_at", desc=True).limit(20).execute()
+        res = supabase_client.table("product_reports").select("product_name, created_at, generated_at, expires_at").order("created_at", desc=True).limit(20).execute()
         return res.data
     except Exception as e:
         print(f"Supabase select history failed: {e}")
@@ -523,15 +578,23 @@ def get_history():
 # --- Fallback Report Generator ---
 
 def save_to_supabase(product_name: str, report_data: Dict[str, Any]):
-    """Background task to save report to Supabase, updating if it already exists."""
+    """Compatibility helper for scripts; endpoint performs a freshness-aware upsert."""
+    if not supabase_client:
+        return
+    now = datetime.now(timezone.utc)
+    product_key = normalize_product_key(product_name)
     try:
-        supabase_client.table("product_reports").upsert(
-            {"product_name": product_name, "report_json": report_data},
-            on_conflict="product_name"
-        ).execute()
-        print(f"Successfully saved {product_name} report to Supabase DB.")
+        supabase_client.table("product_reports").upsert({
+            "product_key": product_key,
+            "product_name": product_name,
+            "report_json": report_data,
+            "generated_at": report_data.get("generated_at", now.isoformat()),
+            "expires_at": (now + timedelta(days=int(os.getenv("REPORT_FRESHNESS_DAYS", "30")))).isoformat(),
+            "updated_at": now.isoformat(),
+        }, on_conflict="product_key").execute()
     except Exception as e:
         print(f"Supabase upsert failed: {e}")
+
 
 def generate_fallback_report(product_name: str, trends: Dict[str, int], legal: Dict[str, Any]) -> Dict[str, Any]:
     """Generates a high-quality mockup report in case Gemini generation errors out."""
